@@ -54,11 +54,11 @@ class _ConversationList extends State<ConversationList> {
           if (index < datas.length && index >= 0) {
             if (datas[index].type == "ITEM") {
               return AutoScrollTag(
-                  key: ValueKey(index),
-                  controller: controller,
-                  index: index,
-                  child: MessageItem(datas[index].data,
-                      key: new Key(datas[index].data.id))
+                key: ValueKey(index),
+                controller: controller,
+                index: index,
+                child: MessageItem(datas[index].data,
+                    key: new Key(datas[index].data.id))
               );
             }
             else if (datas[index].type == "NEW_MESSAGE_SEPARATOR") {

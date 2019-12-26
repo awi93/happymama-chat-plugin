@@ -14,9 +14,9 @@ class VwConversationMessage extends Equatable with BaseModel {
   String _type;
   Map<String, dynamic> _extras;
 
-  String mode = "SOURCE";
-  bool isFirstOfGroup = false;
-  bool isFirst = false;
+  String mode;
+  bool isFirstOfGroup;
+  bool isFirst;
 
   String get id => _id;
 

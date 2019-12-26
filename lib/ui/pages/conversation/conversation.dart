@@ -3,6 +3,7 @@ import 'package:chat_service/core/models/views/vw_user_active_conversation.dart'
 import 'package:chat_service/core/utils/util.dart';
 import 'package:chat_service/ui/pages/conversation/bloc/bloc.dart';
 import 'package:chat_service/ui/pages/conversation/conversation_list.dart';
+import 'package:chat_service/ui/widgets/online_status/online_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -77,15 +78,6 @@ class _Conversation extends State<Conversation>{
                           }
                         },
                       )
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Icon(
-                      FontAwesomeIcons.solidCircle,
-                      size: 10,
-                      color: Colors.grey[600],
-                    )
                   )
                 ],
               ),
@@ -108,13 +100,7 @@ class _Conversation extends State<Conversation>{
                     Container(
                       height: 5,
                     ),
-                    Text(
-                      "Terakhir online 1 Jam yang lalu",
-                      style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12
-                      ),
-                    )
+                    OnlineStatus(data.destinationMemberId)
                   ],
                 ),
               )

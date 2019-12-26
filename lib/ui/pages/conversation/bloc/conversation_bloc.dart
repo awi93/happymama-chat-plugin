@@ -57,7 +57,7 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
     }
 
     int lasti = 0;
-    for(int i=0; i < items.length; i++) {
+    for(int i = 0; i < items.length; i++) {
       if (items[i].type == "ITEM") {
         items[i].data.isFirstOfGroup = false;
         items[i].data.isFirst = (i == 0);
@@ -74,18 +74,21 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
         }
         else {
           if (items[i + 1].type == "HEADER") {
-            items[i].data.isFirstOfGroup =
-            true;
+            items[i].data.isFirstOfGroup = true;
           }
           else
           if (items[i + 1].data.senderId !=
               items[i].data.senderId) {
-            items[i].data.isFirstOfGroup =
-            true;
+            items[i].data.isFirstOfGroup = true;
           }
         }
+      }
+    }
 
-        if (items[i].data.status != "READ" && items[i].data.memberId != memberId) {
+    for(int i = 0; i < items.length; i++) {
+      if (items[i].type == "ITEM") {
+        if (items[i].data.status != "READ" &&
+            items[i].data.memberId != memberId) {
           lasti = i;
         }
         else {

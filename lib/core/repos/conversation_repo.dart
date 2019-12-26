@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:chat_service/core/errors/server_response_error_exception.dart';
 import 'package:chat_service/core/models/bases/cud_response.dart';
 import 'package:chat_service/core/models/bases/paging.dart';
+import 'package:chat_service/core/models/tables/member_online_status.dart';
 import 'package:chat_service/core/models/views/vw_conversation_message.dart';
+import 'package:chat_service/core/models/views/vw_member_online_status.dart';
 import 'package:chat_service/core/models/views/vw_user_active_conversation.dart';
 import 'package:chat_service/core/repos/base_repo.dart';
 import 'package:chat_service/core/utils/util.dart';
@@ -17,6 +19,54 @@ class ConversationRepo extends BaseRepo {
       _instance = new ConversationRepo();
 
     return _instance;
+  }
+
+  Future<CUDResponse<MemberOnlineStatus>> saveMemberOnlineStatus (String memberId) async {
+    String _tokenString = await Util.secureStorage.read(key: "access_token");
+
+    String url = Util.remoteConfig.getString("api_url") + "/members/" + memberId + "/online-statuses";
+
+    final response = await Util.httpClient.post(url, headers: {
+      "authorization" : "Bearer " + _tokenString
+    }, body: {}).timeout(Duration(seconds: 10));
+
+    if (response.statusCode == 201) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      MemberOnlineStatus data = MemberOnlineStatus.fromJson(json["data"]);
+
+      final CUDResponse<MemberOnlineStatus> create = new CUDResponse<MemberOnlineStatus>(json["id"].toString(), data);
+
+      return create;
+    }
+    else {
+      final Map<String, dynamic> error = jsonDecode(response.body);
+      throw ServerResponseErrorException(response.statusCode, error["error"], (error.containsKey("errors"))?error["errors"]:null);
+    }
+
+  }
+
+  Future<VwMemberOnlineStatus> fetchMemberOnlineStatus (String memberId) async {
+    String _tokenString = await Util.secureStorage.read(key: "access_token");
+
+    String url = Util.remoteConfig.getString("api_url") + "/members/" + memberId + "/online-statuses";
+
+    final response = await Util.httpClient.get(url, headers: {
+      "authorization" : "Bearer " + _tokenString
+    }).timeout(Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      VwMemberOnlineStatus data = VwMemberOnlineStatus.fromJson(json);
+
+      return data;
+    }
+    else {
+      final Map<String, dynamic> error = jsonDecode(response.body);
+      throw ServerResponseErrorException(response.statusCode, error["error"], (error.containsKey("errors"))?error["errors"]:null);
+    }
+
   }
 
   Future<Paging<VwUserActiveConversation>> fetchActiveConversations (String memberId, {Map<String, String> query}) async {

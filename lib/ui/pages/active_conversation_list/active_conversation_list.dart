@@ -1,30 +1,40 @@
+import 'package:chat_service/core/models/views/vw_conversation_message.dart';
+import 'package:chat_service/core/utils/util.dart';
 import 'package:chat_service/ui/pages/active_conversation_list/bloc/active_conversation_list_bloc.dart';
 import 'package:chat_service/ui/pages/active_conversation_list/bloc/bloc.dart';
 import 'package:chat_service/ui/widgets/conversation_item/conversation_item.dart';
+import 'package:dart_amqp/dart_amqp.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:uuid/uuid.dart';
 
 class ActiveConversationList extends StatefulWidget {
 
   final String _memberId;
+  final String _memberExchangeRoute;
 
-  ActiveConversationList(this._memberId);
+  ActiveConversationList(this._memberId, this._memberExchangeRoute);
 
   @override
-  _ActiveConversationList createState() => _ActiveConversationList(_memberId);
+  _ActiveConversationList createState() => _ActiveConversationList(_memberId, _memberExchangeRoute);
 
 }
 
 class _ActiveConversationList extends State<ActiveConversationList> {
 
   final String _memberId;
+  final String _memberExchangeRoute;
   final Map<String, String> queries = {
     "paging" : "6",
     "media" : "1",
     "status" : "ACTIVE"
   };
+
+  Client client;
+  Channel channel;
 
   final _scrollThreshold = 100.0;
 
@@ -35,7 +45,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
 
   ActiveConversationListBloc _bloc;
 
-  _ActiveConversationList(this._memberId);
+  _ActiveConversationList(this._memberId, this._memberExchangeRoute);
 
   @override
   void initState() {
@@ -60,6 +70,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
       }
     });
 
+    initChannel();
   }
 
   @override
@@ -108,7 +119,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
                         itemCount: (state.hasReachedFinal) ? state.datas.length : state.datas.length + 1,
                         itemBuilder: (context, index) {
                           if (index < state.datas.length) {
-                            return ConversationItem(index, state.datas[index]);
+                            return ConversationItem(index, state.datas[index], _memberExchangeRoute);
                           }
                           else {
                             return Center(
@@ -192,5 +203,46 @@ class _ActiveConversationList extends State<ActiveConversationList> {
     }
   }
 
+  Future<void> initChannel() async {
+
+    String host = Util.remoteConfig.getString("amqp_url");
+    client = new Client(settings: ConnectionSettings(
+        host: host,
+        port: 5672,
+        authProvider: AmqPlainAuthenticator(Util.RABBIT_USERNAME, Util.RABBIT_PASSWORD)
+    ));
+
+    Uuid uuid = Uuid();
+    String name = uuid.v4();
+
+    channel = await client.channel();
+    Exchange exchange = await channel.exchange("member." + _memberExchangeRoute, ExchangeType.FANOUT);
+    Queue queue = await channel.queue(name, exclusive: true, durable: false);
+    await queue.bind(exchange, "");
+
+    Consumer consumer = await queue.consume();
+    consumer.listen((AmqpMessage message) {
+      if (_bloc.currentState != null && _bloc.currentState is FetchedState) {
+        Map<String, dynamic> load = message.payloadAsJson;
+        if(load["type"] != null) {
+          switch (load["type"]) {
+            case "MESSAGE":
+              VwConversationMessage message = VwConversationMessage.fromJson(load["data"]);
+              String activeConversation = Util.prefs.getString("ACTIVE_CONVERSATION");
+              if (message.conversationId != activeConversation) {
+                FlutterRingtonePlayer.playNotification();
+              }
+              _bloc.dispatch(UpdateLatestMessage(message));
+              break;
+            case "MSG_STATUS_UPDATE":
+              VwConversationMessage message = VwConversationMessage.fromJson(load["data"]);
+              String activeConversation = Util.prefs.getString("ACTIVE_CONVERSATION");
+              _bloc.dispatch(UpdateLatestMessage(message));
+              break;
+          }
+        }
+      }
+    });
+  }
 
 }

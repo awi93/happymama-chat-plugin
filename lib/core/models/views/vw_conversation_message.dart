@@ -7,7 +7,6 @@ class VwConversationMessage extends Equatable with BaseModel {
   String _id;
   String _conversationId;
   String _senderId;
-  String _memberId;
   String _replyTo;
   String _message;
   String _status;
@@ -68,19 +67,12 @@ class VwConversationMessage extends Equatable with BaseModel {
   }
 
 
-  String get memberId => _memberId;
-
-  set memberId(String value) {
-    _memberId = value;
-  }
-
   static VwConversationMessage fromJson (Map<String, dynamic> json) {
     VwConversationMessage data = VwConversationMessage();
 
     data.id = json["id"];
     data.conversationId = json["conversation_id"];
     data.senderId = json["sender_id"];
-    data.memberId = json["member_id"];
     data.replyTo = json["reply_to"];
     data.message = json["message"];
     data.status = json["status"];

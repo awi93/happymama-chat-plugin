@@ -12,7 +12,6 @@ class VwUserActiveConversation extends Equatable with BaseModel {
   String _name;
   String _mediaId;
   String _latestMessageSenderId;
-  String _latestMessageMemberId;
   String _latestMessage;
   String _latestMessageStatus;
   DateTime _latestMessageCreatedAt;
@@ -92,14 +91,6 @@ class VwUserActiveConversation extends Equatable with BaseModel {
     _id = value;
   }
 
-
-  String get latestMessageMemberId => _latestMessageMemberId;
-
-  set latestMessageMemberId(String value) {
-    _latestMessageMemberId = value;
-  }
-
-
   String get latestMessageType => _latestMessageType;
 
   set latestMessageType(String value) {
@@ -116,7 +107,6 @@ class VwUserActiveConversation extends Equatable with BaseModel {
     data.name = json["name"];
     data.mediaId = json["media_id"];
     data.latestMessageSenderId = json["latest_message_sender_id"];
-    data.latestMessageMemberId = json["latest_message_member_id"];
     data.latestMessage = json["latest_message"];
     data.latestMessageStatus = json["latest_message_status"];
     data.latestMessageType = json["latest_message_type"];

@@ -14,10 +14,11 @@ class ConversationItem extends StatefulWidget {
 
   final int index;
   final VwUserActiveConversation data;
+  final String _memberExchangeRoute;
 
-  ConversationItem(this.index, this.data);
+  ConversationItem(this.index, this.data, this._memberExchangeRoute);
 
-  _ConversationItem createState() => _ConversationItem(index, data);
+  _ConversationItem createState() => _ConversationItem(index, data, _memberExchangeRoute);
 
 }
 
@@ -25,8 +26,10 @@ class _ConversationItem extends State<ConversationItem> {
 
   final int index;
   final VwUserActiveConversation data;
+  final String _memberExchangeRoute;
 
-  _ConversationItem(this.index, this.data);
+
+  _ConversationItem(this.index, this.data, this._memberExchangeRoute);
 
   Color backgroundColors = Colors.white;
   ActiveConversationListBloc _bloc;
@@ -127,7 +130,7 @@ class _ConversationItem extends State<ConversationItem> {
       },
       onTap: () {
         Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => Conversation(data),
+            builder: (context) => Conversation(data, _memberExchangeRoute),
             settings: RouteSettings(
                 name: "conversation"
             )
@@ -206,7 +209,7 @@ class _ConversationItem extends State<ConversationItem> {
                   ),
                   Builder(
                     builder: (context) {
-                      if (data.latestMessageStatus != "READ" && data.latestMessageMemberId != data.sourceMemberId) {
+                      if (data.latestMessageStatus != "READ" && data.latestMessageSenderId != data.sourceMemberId) {
                         return Icon(
                           FontAwesomeIcons.solidCircle,
                           color: Colors.red,
@@ -239,12 +242,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -274,12 +277,12 @@ class _ConversationItem extends State<ConversationItem> {
 
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -316,12 +319,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -358,12 +361,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -400,12 +403,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -442,12 +445,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -484,12 +487,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(
@@ -526,12 +529,12 @@ class _ConversationItem extends State<ConversationItem> {
           children: <Widget>[
             Builder(
               builder: (context) {
-                if (data.latestMessageMemberId == data.sourceMemberId) {
+                if (data.latestMessageSenderId == data.sourceMemberId) {
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
                       MessageStatus(
-                          (data.latestMessageMemberId != data.sourceMemberId)
+                          (data.latestMessageSenderId != data.sourceMemberId)
                               ? "DESTINATION"
                               : "SOURCE", data.latestMessageStatus),
                       Container(

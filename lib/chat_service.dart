@@ -8,6 +8,7 @@ class ChatService {
 
   static void init(RemoteConfig remoteConfig, SharedPreferences prefs) {
     Util.remoteConfig = remoteConfig;
+    Util.prefs = prefs;
   }
 
   static void setLocale(Locale locale) {

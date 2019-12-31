@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:chat_service/core/errors/server_response_error_exception.dart';
 import 'package:chat_service/core/models/bases/cud_response.dart';
 import 'package:chat_service/core/models/bases/paging.dart';
+import 'package:chat_service/core/models/tables/member_exchange_route.dart';
 import 'package:chat_service/core/models/tables/member_online_status.dart';
 import 'package:chat_service/core/models/views/vw_conversation_message.dart';
 import 'package:chat_service/core/models/views/vw_member_online_status.dart';
 import 'package:chat_service/core/models/views/vw_user_active_conversation.dart';
 import 'package:chat_service/core/repos/base_repo.dart';
 import 'package:chat_service/core/utils/util.dart';
+import 'package:dart_amqp/dart_amqp.dart';
 
 class ConversationRepo extends BaseRepo {
 
@@ -173,6 +175,82 @@ class ConversationRepo extends BaseRepo {
 
       return paging;
     }
+  }
+
+  Future<MemberExchangeRoute> fetchMemberExchangeRoute(String memberId) async {
+    String _tokenString = await Util.secureStorage.read(key: "access_token");
+
+    String url = Util.remoteConfig.getString("api_url") + "/members/" + memberId + "/exchange-routes";
+
+    final response = await Util.httpClient.get(url, headers: {
+      "authorization" : "Bearer " + _tokenString
+    }).timeout(Duration(seconds: 10));
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      MemberExchangeRoute data = MemberExchangeRoute.fromJson(json);
+
+      return data;
+    }
+    else {
+      final Map<String, dynamic> error = jsonDecode(response.body);
+      throw ServerResponseErrorException(response.statusCode, error["error"], (error.containsKey("errors"))?error["errors"]:null);
+    }
+  }
+
+  Future<void> pushMessageStatus (VwConversationMessage data, String memberId, String status) async {
+    String host = Util.remoteConfig.getString("amqp_url");
+    Client client = new Client(settings: ConnectionSettings(
+        host: host,
+        port: 5672,
+        authProvider: AmqPlainAuthenticator(Util.RABBIT_USERNAME, Util.RABBIT_PASSWORD)
+    ));
+
+    Channel channel = await client.channel();
+    Exchange exchange = await channel.exchange("conversation.outgoing", ExchangeType.FANOUT);
+
+    Map<String, dynamic> message = {
+      "type" : "STATUS",
+      "data" : {
+        "id" : data.id,
+        "conversation_id" : data.conversationId,
+        "sender_id" : memberId,
+        "message" : status
+      }
+    };
+
+    exchange.publish(jsonEncode(message), null);
+
+    channel.close();
+    client.close();
+  }
+
+  Future<void> pushMessage (VwConversationMessage data) async {
+    String host = Util.remoteConfig.getString("amqp_url");
+    Client client = new Client(settings: ConnectionSettings(
+        host: host,
+        port: 5672,
+        authProvider: AmqPlainAuthenticator(Util.RABBIT_USERNAME, Util.RABBIT_PASSWORD)
+    ));
+
+    Channel channel = await client.channel();
+    Exchange exchange = await channel.exchange("conversation.outgoing", ExchangeType.FANOUT);
+
+    Map<String, dynamic> message = {
+      "type" : "MESSAGE",
+      "data" : {
+        "id" : data.id,
+        "conversation_id" : data.conversationId,
+        "sender_id" : data.senderId,
+        "message" : data.message
+      }
+    };
+
+    exchange.publish(jsonEncode(message), null);
+
+    channel.close();
+    client.close();
   }
 
 }

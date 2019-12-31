@@ -4,15 +4,20 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:intl/intl.dart';
 import 'package:chat_service/ui/widgets/message_item/custom_message/factory.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Util {
 
   static final http.Client httpClient = new http.Client();
   static final FlutterSecureStorage secureStorage = new FlutterSecureStorage();
   static RemoteConfig remoteConfig;
+  static SharedPreferences prefs;
   static Locale locale = new Locale("id");
   static Factory factory = new Factory();
   static String GOOGLE_API_KEY;
+
+  static String RABBIT_USERNAME = "admin";
+  static String RABBIT_PASSWORD = "loveYenni4ever!";
 
   static const HOUR_MINUTE = "HH:mm";
   static const MONTH_DAY_YEAR = "MMMM dd, yyyy";

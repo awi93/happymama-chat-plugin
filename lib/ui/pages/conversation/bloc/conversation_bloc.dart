@@ -26,17 +26,19 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
       if (fetch) {
         try {
           if (state is InitialConversationState) {
-            final Paging<VwConversationMessage> items = await _fetch(event.memberId, event.conversationId,  page: 1, filter: event.query);
-            yield new FetchedState(items.currentPage, items.currentPage == items.lastPage, getitems(items.data, event.memberId), items.data, event.query);
+            final Paging<VwConversationMessage> items = await _fetch(event.conversation.sourceMemberId, event.conversation.conversationId,  page: 1, filter: event.query);
+            dispatch(MarkAsRead(event.conversation));
+            yield new ActivedState(items.currentPage, items.currentPage == items.lastPage, items.data, buildDatas(items.data, event.conversation.sourceMemberId), event.query, "FETCH");
           }
-          else if (state is FetchedState) {
-            final Paging<VwConversationMessage> items = await _fetch(event.memberId, event.conversationId, page: state.page + 1, filter: event.query);
-            yield new FetchedState(
+          else if (state is ActivedState) {
+            final Paging<VwConversationMessage> items = await _fetch(event.conversation.sourceMemberId, event.conversation.conversationId,  page: state.page + 1, filter: event.query);
+            yield new ActivedState(
                 items.currentPage,
                 items.currentPage == items.lastPage,
-                getitems(state.rawDatas + items.data, event.memberId),
                 state.rawDatas + items.data,
-                event.query
+                buildDatas(state.rawDatas + items.data, event.conversation.sourceMemberId),
+                event.query,
+                "LOAD_MORE"
             );
           }
         }
@@ -45,69 +47,50 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
         }
       }
     }
-  }
-
-  List<MultilistItem> getitems (List<VwConversationMessage> raw, String memberId) {
-    Map<String, List<VwConversationMessage>> grouped = groupBy(raw, (d) => Util.formatDate(Util.MONTH_DAY_YEAR, d.createdAt));
-    List<MultilistItem> items = List();
-
-    for (String group in grouped.keys) {
-      items.addAll(grouped[group].map((a) => new MultilistItem("ITEM", a)));
-      items.add(new MultilistItem("HEADER", group));
-    }
-
-    int lasti = 0;
-    for(int i = 0; i < items.length; i++) {
-      if (items[i].type == "ITEM") {
-        items[i].data.isFirstOfGroup = false;
-        items[i].data.isFirst = (i == 0);
-
-        if (items[i].data.memberId != memberId) {
-          items[i].data.mode = "DESTINATION";
+    else if (event is Receive) {
+      if (state is ActivedState) {
+        if (event.type == "NEW") {
+          List<VwConversationMessage> rawDatas = state.rawDatas;
+          rawDatas.insert(0, event.message);
+          yield new ActivedState(state.page, state.hasReachedFinal, rawDatas, buildDatas(rawDatas, event.conversation.sourceMemberId), state.query, "RECEIVE");
         }
         else {
-          items[i].data.mode = "SOURCE";
-        }
-
-        if ((i + 1) > items.length) {
-          items[i].data.isFirstOfGroup = true;
-        }
-        else {
-          if (items[i + 1].type == "HEADER") {
-            items[i].data.isFirstOfGroup = true;
+          List<VwConversationMessage> rawDatas = state.rawDatas;
+          for (VwConversationMessage data in rawDatas) {
+            if (data.id == event.message.id) {
+              data.status = event.message.status;
+            }
           }
-          else
-          if (items[i + 1].data.senderId !=
-              items[i].data.senderId) {
-            items[i].data.isFirstOfGroup = true;
-          }
+          yield new ActivedState(state.page, state.hasReachedFinal, rawDatas, buildDatas(rawDatas, event.conversation.sourceMemberId), state.query, "UPDATE_STATUS");
         }
       }
     }
-
-    for(int i = 0; i < items.length; i++) {
-      if (items[i].type == "ITEM") {
-        if (items[i].data.status != "READ" &&
-            items[i].data.memberId != memberId) {
-          lasti = i;
-        }
-        else {
-          break;
-        }
+    else if (event is Send) {
+      if (state is ActivedState) {
+        ConversationRepo.instance().pushMessage(event.message);
+        List<VwConversationMessage> rawDatas = state.rawDatas;
+        rawDatas.insert(0, event.message);
+        yield new ActivedState(state.page, state.hasReachedFinal, rawDatas,
+            buildDatas(rawDatas, event.conversation.sourceMemberId),
+            state.query, "SEND");
       }
     }
-
-    if (lasti > 0) {
-      items.insert(lasti, new MultilistItem("NEW_MESSAGE_SEPARATOR", null));
+    else if (event is MarkAsRead) {
+      if (state is ActivedState) {
+        for (MultilistItem item in state.datas) {
+          if (item.type == "ITEM") {
+            if ((item.data as VwConversationMessage).status != "READ" && ((item.data as VwConversationMessage)).mode == "DESTINATION") {
+              ConversationRepo.instance().pushMessageStatus((item.data as VwConversationMessage), event.conversation.sourceMemberId, "READ");
+            }
+          }
+        }
+        yield new ActivedState(state.page, state.hasReachedFinal, state.rawDatas, state.datas, state.query, "READ");
+      }
     }
-
-    items.add(new MultilistItem("FOOTER", null));
-
-    return items;
   }
 
   bool _hasReachedMax(ConversationState state) =>
-      state is FetchedState && state.hasReachedFinal;
+      state is ActivedState && state.hasReachedFinal;
 
   Future<Paging<VwConversationMessage>> _fetch(String memberId, String conversationId, {int page, Map<String, String> filter}) async {
     ConversationRepo _conversationRepo = ConversationRepo.instance();
@@ -118,4 +101,109 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
 
     return items;
   }
+
+  List<MultilistItem> buildDatas (List<VwConversationMessage> rawDatas, String memberId) {
+    final Map<String, List<VwConversationMessage>> dateGrouped = groupBy(rawDatas, (d) => Util.formatDate(Util.MONTH_DAY_YEAR, d.createdAt));
+    final Map<String, Map<String, List<VwConversationMessage>>> finalGrouped = new Map();
+
+    try {
+      for (String date in dateGrouped.keys) {
+        final Map<String, List<VwConversationMessage>> group = new Map();
+        group["UNREAD"] = [];
+        int index = 0;
+        for (int i = 0; i < dateGrouped[date].length; i ++) {
+          VwConversationMessage data = dateGrouped[date][i];
+          VwConversationMessage nextData = (i < dateGrouped[date].length - 1)
+              ? dateGrouped[date][i + 1]
+              : null;
+
+          if (data.senderId != memberId)
+            data.mode = "DESTINATION";
+          else
+            data.mode = "SOURCE";
+
+          data.isFirstOfGroup = false;
+          data.isFirst = false;
+
+          if (i == dateGrouped[date].length - 1) {
+            data.isFirstOfGroup = true;
+          }
+
+          if (nextData != null) {
+            if (nextData.senderId != data.senderId) {
+              data.isFirstOfGroup = true;
+
+              if (group.containsKey(index.toString())) {
+                group[index.toString()].add(data);
+              }
+              else {
+                group[index.toString()] = [];
+                group[index.toString()].add(data);
+              }
+
+              index += 1;
+            }
+            else {
+              if (group.containsKey(index.toString())) {
+                group[index.toString()].add(data);
+              }
+              else {
+                group[index.toString()] = [];
+                group[index.toString()].add(data);
+              }
+            }
+          }
+          else {
+            if (group.containsKey(index.toString())) {
+              group[index.toString()].add(data);
+            }
+            else {
+              group[index.toString()] = [];
+              group[index.toString()].add(data);
+            }
+          }
+        }
+
+        finalGrouped[date] = group;
+      }
+    }
+    catch(e) {
+      print(e);
+    }
+
+    List<MultilistItem> datas = [];
+
+    for (String date in finalGrouped.keys) {
+      for (String group in finalGrouped[date].keys) {
+        datas.addAll(finalGrouped[date][group].map((data) => new MultilistItem("ITEM", data)));
+      }
+      datas.add(new MultilistItem("HEADER", date));
+    }
+
+    if (datas[0].type == "ITEM")
+      datas[0].data.isFirst = true;
+
+    int lastIdex = -1;
+    for (int i = 0; i < datas.length; i++) {
+      MultilistItem data = datas[i];
+      if (data.type == "ITEM") {
+        VwConversationMessage msg = data.data;
+        if (msg.status != "READ" && msg.mode == "DESTINATION") {
+          lastIdex = i;
+        }
+        else {
+          break;
+        }
+      }
+    }
+
+    if (lastIdex >= 0) {
+      datas.insert(lastIdex + 1, new MultilistItem("NEW_MESSAGE_SEPARATOR", null));
+    }
+
+    datas.add(new MultilistItem("FOOTER", null));
+
+    return datas;
+  }
+
 }

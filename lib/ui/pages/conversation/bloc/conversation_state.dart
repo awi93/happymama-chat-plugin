@@ -8,39 +8,25 @@ abstract class ConversationState {}
 
 class InitialConversationState extends ConversationState {}
 
-class FetchedState extends ConversationState {
+class ActivedState extends ConversationState {
 
-  int _page = 0;
-  bool _hasReachedFinal = false;
-  List<MultilistItem> _datas;
-  List<VwConversationMessage> _rawDatas;
-  Map<String, String> _filter;
+  int page = 0;
+  bool hasReachedFinal = false;
+  List<VwConversationMessage> rawDatas;
+  List<MultilistItem> datas;
+  Map<String, String> query;
+  String state;
 
-  FetchedState(this._page, this._hasReachedFinal, this._datas, this._rawDatas,
-      this._filter);
-
-  Map<String, String> get filter => _filter;
-
-  List<VwConversationMessage> get rawDatas => _rawDatas;
-
-  List<MultilistItem> get datas => _datas;
-
-  bool get hasReachedFinal => _hasReachedFinal;
-
-  int get page => _page;
+  ActivedState(this.page, this.hasReachedFinal, this.rawDatas, this.datas,
+      this.query, this.state);
 
 }
 
 class ErrorState extends ConversationState {
 
-  final ConversationState _prevState;
-  final ConversationEvent _prevEvent;
+  ConversationState prevState;
+  ConversationEvent prevEvent;
 
-  ErrorState(this._prevState, this._prevEvent);
-
-  ConversationEvent get prevEvent => _prevEvent;
-
-  ConversationState get prevState => _prevState;
-
+  ErrorState(this.prevState, this.prevEvent);
 
 }

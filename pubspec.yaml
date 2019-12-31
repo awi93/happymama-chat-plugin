@@ -26,7 +26,7 @@ dependencies:
 
 
   equatable: ^0.2.0
-  flutter_secure_storage: ^3.2.1+1
+  flutter_secure_storage: ^3.3.1+1
   shared_preferences: ^0.5.6
   flutter_bloc: ^0.19.0
   http: ^0.12.0
@@ -42,6 +42,10 @@ dependencies:
   url_launcher: ^5.4.1
   photo_view: ^0.9.0
   scroll_to_index: ^1.0.5
+  dart_amqp: ^0.1.4
+  uuid: ^2.0.4
+  audiofileplayer: 1.0.3
+  flutter_ringtone_player: ^2.0.0
 
   intl: ^0.16.0
 
@@ -72,6 +76,8 @@ flutter:
     - packages/chat_service/assets/ic_loading.svg
     - packages/chat_service/assets/ic_send.svg
     - packages/chat_service/assets/ic_sent.svg
+    - packages/chat_service/assets/notif.mp3
+    - packages/chat_service/assets/tick.mp3
 
   # To add Flutter specific assets to your application, add an assets section,
   # like this:

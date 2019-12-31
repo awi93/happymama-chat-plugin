@@ -42,7 +42,8 @@ class OnlineStatus extends StatelessWidget {
           text,
           style: TextStyle(
             color: Colors.grey[500],
-            fontSize: 12
+            fontSize: 11,
+            fontWeight: FontWeight.normal
           ),
         );
       },

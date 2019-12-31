@@ -13,6 +13,7 @@ class PlainText extends BaseCustomMessage {
     return Wrap(
       verticalDirection: VerticalDirection.down,
       alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.end,
       children: <Widget>[
         SelectableText(
           data.message,

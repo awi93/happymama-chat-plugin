@@ -16,6 +16,15 @@ class MessageStatus extends StatelessWidget {
     }
 
     switch (status) {
+      case "ON_PROGRESS" :
+        return SizedBox(
+          width: 14,
+          height: 14,
+          child: SvgPicture.asset(
+            "packages/chat_service/assets/ic_loading.svg",
+            color: Colors.grey,
+          ),
+        );
       case "SENT" :
         return SizedBox(
           width: 14,

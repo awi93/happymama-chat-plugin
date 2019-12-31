@@ -62,6 +62,38 @@ class ActiveConversationListBloc extends Bloc<ActiveConversationListEvent, Activ
         }
       }
     }
+    else if (event is UpdateLatestMessage) {
+      if (state is FetchedState) {
+        int index = state.datas.indexWhere((data) => data.conversationId == event.data.conversationId);
+        if (index >= 0) {
+          state.datas[index].latestMessageSenderId = event.data.senderId;
+          state.datas[index].latestMessage = event.data.message;
+          state.datas[index].latestMessageCreatedAt = event.data.createdAt;
+          state.datas[index].latestMessageStatus = event.data.status;
+          state.datas[index].latestMessageType = event.data.type;
+          yield new FetchedState(
+            state.page,
+            state.hasReachedFinal,
+            state.datas,
+            state.filter
+          );
+        }
+      }
+    }
+    else if (event is UpdateLatestMessageStatus) {
+      if (state is FetchedState) {
+        int index = state.datas.indexWhere((data) => data.conversationId == event.data.conversationId);
+        if (index >= 0) {
+          state.datas[index].latestMessageStatus = event.data.status;
+          yield new FetchedState(
+              state.page,
+              state.hasReachedFinal,
+              state.datas,
+              state.filter
+          );
+        }
+      }
+    }
   }
 
   bool _hasReachedMax(ActiveConversationListState state) =>

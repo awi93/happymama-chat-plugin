@@ -13,7 +13,7 @@ class Media extends BaseCustomMessage {
 
   @override
   Widget build(BuildContext context) {
-    String url = Util.remoteConfig.getString("static_url") + "/files/images/large/" + data.extras["url"];
+    String url = Util.remoteConfig.getString("sttn_url") + "/files/images/large/" + data.extras["url"];
     return Stack(
       children: <Widget>[
         GestureDetector(

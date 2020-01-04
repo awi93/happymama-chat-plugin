@@ -1,3 +1,4 @@
+import 'package:chat_service/ui/widgets/embedded_message_picker/embedded_message_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -14,6 +15,7 @@ class Util {
   static SharedPreferences prefs;
   static Locale locale = new Locale("id");
   static Factory factory = new Factory();
+  static List<EmbeddedMessagePicker> embeddedMessagePickers = [];
   static String GOOGLE_API_KEY;
 
   static String RABBIT_USERNAME = "admin";
@@ -43,5 +45,28 @@ class Util {
       return "-";
     return DateFormat(format, locale.languageCode).format(date);
   }
+
+  static String formatNumeric(Locale locale, double data) {
+    if (data != null) {
+      NumberFormat format = new NumberFormat("#,###", locale.languageCode);
+
+      return format.format(data);
+    }
+
+    return "-";
+  }
+
+
+  static String formatCurrency(Locale locale, double data) {
+    if (data != null) {
+      NumberFormat format = NumberFormat.currency(
+          locale: locale.languageCode, symbol: "Rp ");
+
+      return format.format(data);
+    }
+
+    return "-";
+  }
+
 
 }

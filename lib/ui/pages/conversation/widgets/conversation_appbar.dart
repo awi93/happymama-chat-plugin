@@ -28,7 +28,7 @@ class ConversationAppbar extends StatelessWidget {
                       if (conversation.media != null) {
                         return CircleAvatar(
                           backgroundImage: CachedNetworkImageProvider(
-                              Util.remoteConfig.getString("static_url") + "/files/images/small/" + conversation.media.url
+                              Util.remoteConfig.getString("sttn_url") + "/files/images/small/" + conversation.media.url
                           ),
                           backgroundColor: Colors.grey[300],
                         );

@@ -6,6 +6,9 @@ import 'package:chat_service/core/utils/util.dart';
 import 'package:chat_service/ui/pages/conversation/bloc/bloc.dart';
 import 'package:chat_service/ui/pages/conversation/widgets/conversation_appbar.dart';
 import 'package:chat_service/ui/pages/conversation/widgets/conversation_list.dart';
+import 'package:chat_service/ui/pages/conversation/widgets/embedded_message.dart';
+import 'package:chat_service/ui/widgets/embedded_message_item/factory.dart';
+import 'package:chat_service/ui/widgets/embedded_message_picker/embedded_message_picker.dart';
 import 'package:dart_amqp/dart_amqp.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,10 +23,11 @@ class Conversation extends StatefulWidget {
 
   final VwUserActiveConversation conversation;
   final String memberExchangeRoute;
+  final VwConversationMessage embeddedMessage;
 
-  Conversation(this.conversation, this.memberExchangeRoute);
+  Conversation(this.conversation, this.memberExchangeRoute, {this.embeddedMessage});
 
-  _Conversation createState() => _Conversation(conversation, memberExchangeRoute);
+  _Conversation createState() => _Conversation(conversation, memberExchangeRoute, this.embeddedMessage);
 
 }
 
@@ -31,8 +35,10 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
 
   final _scrollThreshold = 100.0;
 
-  final VwUserActiveConversation conversation;
+  VwUserActiveConversation conversation;
   final String memberExchangeRoute;
+  VwConversationMessage embeddedMessage;
+
   final Map<String, String> query = {
     "paging" : "40",
     "order_by" : "[created_at:desc]",
@@ -46,7 +52,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
   ConversationBloc _bloc;
   Client client;
 
-  _Conversation(this.conversation, this.memberExchangeRoute);
+  _Conversation(this.conversation, this.memberExchangeRoute, this.embeddedMessage);
 
   @override
   void initState() {
@@ -88,6 +94,10 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
           });
         }
 
+        if (state.state == "FETCH") {
+          _bloc.dispatch(MarkAsRead(state.conversation));
+        }
+
       }
     });
   }
@@ -121,6 +131,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
                               );
                             }
                             else if (state is ActivedState) {
+                              this.conversation = state.conversation;
                               int newIndex = state.datas.indexWhere((data) => data.type == "NEW_MESSAGE_SEPARATOR");
                               bool showNewSeparator = false;
                               bool gotoBottom = true;
@@ -200,105 +211,147 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
                   ),
                   ConstrainedBox(
                     child: FittedBox(
-                      fit: BoxFit.fill,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        width: MediaQuery.of(context).size.width,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: <Widget>[
-                            GestureDetector(
-                              onTap: () {
-
-                              },
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                width: 25,
-                                height: 25,
-                                child: Icon(
-                                  FontAwesomeIcons.plus,
-                                  size: 15,
-                                  color: Colors.white,
-                                ),
-                                decoration: BoxDecoration(
-                                    color: Theme.of(context).accentColor,
-                                    borderRadius: BorderRadius.circular(15)
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 10,
-                            ),
-                            Expanded(
-                                child: Padding(
-                                  padding: EdgeInsets.only(top: 0),
-                                  child: TextField(
-                                    minLines: 1,
-                                    maxLines: 3,
-                                    controller: textController,
-                                    decoration: InputDecoration(
-                                        hintText: "Masukan Sebuah Pesan",
-                                        hintStyle: TextStyle(color: Colors.black26),
-                                        filled: true,
-                                        fillColor: Colors.white,
-                                        border: OutlineInputBorder(
-                                          borderSide: BorderSide(color: Colors.grey[600].withAlpha(80), width: 1),
-                                          borderRadius: BorderRadius.all(Radius.circular(25.0)),
+                      fit: BoxFit.cover,
+                      child: Column(
+                        children: <Widget>[
+                          Builder(
+                            builder: (context) {
+                              if (embeddedMessage != null) {
+                                return Stack(
+                                  children: <Widget>[
+                                    Container(
+                                      height: 80,
+                                      width: MediaQuery.of(context).size.width,
+                                      child: Factory.getWidget(embeddedMessage.type, embeddedMessage),
+                                      color: Colors.white,
+                                    ),
+                                    Positioned(
+                                      top: 10,
+                                      right: 10,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            embeddedMessage = null;
+                                          });
+                                        },
+                                        behavior: HitTestBehavior.opaque,
+                                        child: Icon(
+                                          FontAwesomeIcons.timesCircle,
+                                          color: Colors.grey,
                                         ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(color: Colors.grey[600].withAlpha(100), width: 1),
-                                          borderRadius: BorderRadius.all(Radius.circular(25.0)),
+                                      ),
+                                    )
+                                  ],
+                                );
+                              }
+                              return Container();
+                            },
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            width: MediaQuery.of(context).size.width,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                GestureDetector(
+                                  onTap: () {
+                                    showModalBottomSheet(context: context, builder: (context) => EmbeddedMessage((VwConversationMessage data) {
+                                      if (data.type == "MEDIA") {
+                                        Uuid uuid = new Uuid();
+                                        data.id = uuid.v4();
+                                        data.conversationId =
+                                            conversation.conversationId;
+                                        data.senderId =
+                                            conversation.sourceMemberId;
+                                        data.createdAt = DateTime.now();
+                                        data.status = "ON_PROGRESS";
+                                        _bloc.dispatch(Send(conversation, data));
+                                      }
+                                      else {
+                                        setState(() {
+                                          this.embeddedMessage = data;
+                                        });
+                                      }
+                                      Navigator.of(context).pop();
+                                    }, conversation));
+                                  },
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                    width: 25,
+                                    height: 25,
+                                    child: Icon(
+                                      FontAwesomeIcons.plus,
+                                      size: 15,
+                                      color: Colors.white,
+                                    ),
+                                    decoration: BoxDecoration(
+                                        color: Theme.of(context).accentColor,
+                                        borderRadius: BorderRadius.circular(15)
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  width: 10,
+                                ),
+                                Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(top: 0),
+                                      child: TextField(
+                                        minLines: 1,
+                                        maxLines: 3,
+                                        controller: textController,
+                                        decoration: InputDecoration(
+                                            hintText: "Masukan Sebuah Pesan",
+                                            hintStyle: TextStyle(color: Colors.black26),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            border: OutlineInputBorder(
+                                              borderSide: BorderSide(color: Colors.grey[600].withAlpha(80), width: 1),
+                                              borderRadius: BorderRadius.all(Radius.circular(25.0)),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderSide: BorderSide(color: Colors.grey[600].withAlpha(100), width: 1),
+                                              borderRadius: BorderRadius.all(Radius.circular(25.0)),
+                                            ),
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0)
                                         ),
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0)
+                                      ),
+                                    )
+                                ),
+                                Container(
+                                  width: 10,
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    sendMessage();
+                                  },
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                    height: 45,
+                                    width: 45,
+                                    padding: EdgeInsets.all(11),
+                                    child: SvgPicture.asset(
+                                      "packages/chat_service/assets/ic_send.svg",
+                                      color: Colors.white,
+                                    ),
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(50),
+                                        color: Theme.of(context).accentColor
                                     ),
                                   ),
                                 )
+                              ],
                             ),
-                            Container(
-                              width: 10,
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                SystemChannels.textInput.invokeMethod('TextInput.hide');
-                                if (textController.text != null && textController.text != "") {
-                                  VwConversationMessage message = new VwConversationMessage();
-                                  Uuid uuid = new Uuid();
-                                  message.id = uuid.v4();
-                                  message.conversationId = conversation.conversationId;
-                                  message.senderId = conversation.sourceMemberId;
-                                  message.message = textController.text;
-                                  message.status = "ON_PROGRESS";
-                                  message.type = "TEXT";
-                                  message.createdAt = DateTime.now();
-                                  _bloc.dispatch(Send(conversation, message));
-                                  textController.clear();
-                                }
-                              },
-                              behavior: HitTestBehavior.opaque,
-                              child: Container(
-                                height: 45,
-                                width: 45,
-                                padding: EdgeInsets.all(11),
-                                child: SvgPicture.asset(
-                                  "packages/chat_service/assets/ic_send.svg",
-                                  color: Colors.white,
-                                ),
-                                decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(50),
-                                    color: Theme.of(context).accentColor
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                        color: Colors.white,
-                        alignment: Alignment.center,
-                      ),
+                            color: Colors.white,
+                            alignment: Alignment.center,
+                          ),
+                        ],
+                      )
                     ),
                     constraints: BoxConstraints(
                       minHeight: 60,
-                      maxHeight: 100
+                      maxHeight: 240
                     ),
                   ),
                 ],
@@ -353,6 +406,48 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
       }
     });
 
+  }
+
+  Future<void> sendMessage() async {
+    if (_bloc.currentState is ActivedState) {
+      SystemChannels.textInput.invokeMethod(
+          'TextInput.hide');
+      if (textController.text != null &&
+          textController.text != "") {
+        Uuid uuid = new Uuid();
+        if (embeddedMessage != null) {
+          embeddedMessage.id = uuid.v4();
+          embeddedMessage.conversationId =
+              conversation.conversationId;
+          embeddedMessage.senderId =
+              conversation.sourceMemberId;
+          embeddedMessage.createdAt =
+          DateTime.now()..subtract(Duration(microseconds: 10));
+          embeddedMessage.status =
+          "ON_PROGRESS";
+          _bloc.dispatch(Send(
+              conversation, embeddedMessage));
+          setState(() {
+            embeddedMessage = null;
+          });
+
+        }
+        VwConversationMessage message = new VwConversationMessage();
+        message.id = uuid.v4();
+        message.conversationId =
+            conversation.conversationId;
+        message.senderId =
+            conversation.sourceMemberId;
+        message.message = textController.text;
+        message.status = "ON_PROGRESS";
+        message.type = "TEXT";
+        message.createdAt = DateTime.now();
+        textController.clear();
+        await Future.delayed(Duration(milliseconds: 300),() {});
+        _bloc.dispatch(
+            Send(conversation, message));
+      }
+    }
   }
 
   @override

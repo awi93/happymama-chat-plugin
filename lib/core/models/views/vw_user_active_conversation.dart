@@ -1,4 +1,5 @@
 import 'package:chat_service/core/models/bases/base_model.dart';
+import 'package:chat_service/core/models/tables/conversation_member.dart';
 import 'package:chat_service/core/models/tables/media.dart';
 import 'package:chat_service/core/utils/util.dart';
 import 'package:equatable/equatable.dart';
@@ -8,7 +9,11 @@ class VwUserActiveConversation extends Equatable with BaseModel {
   String _id;
   String _conversationId;
   String _sourceMemberId;
+  String _sourceMemberName;
+  String _sourceMemberType;
   String _destinationMemberId;
+  String _destinationMemberName;
+  String _destinationMemberType;
   String _name;
   String _mediaId;
   String _latestMessageSenderId;
@@ -18,6 +23,8 @@ class VwUserActiveConversation extends Equatable with BaseModel {
   String _type;
   Media _media;
   String _latestMessageType;
+  bool _isExisting;
+  List<ConversationMember> _conversationMembers;
 
   String get id => _id;
 
@@ -97,13 +104,55 @@ class VwUserActiveConversation extends Equatable with BaseModel {
     _latestMessageType = value;
   }
 
+  String get sourceMemberType => _sourceMemberType;
+
+  set sourceMemberType(String value) {
+    _sourceMemberType = value;
+  }
+
+  String get destinationMemberType => _destinationMemberType;
+
+  set destinationMemberType(String value) {
+    _destinationMemberType = value;
+  }
+
+  List<ConversationMember> get conversationMembers => _conversationMembers;
+
+  set conversationMembers(List<ConversationMember> value) {
+    _conversationMembers = value;
+  }
+
+
+  bool get isExisting => _isExisting;
+
+  set isExisting(bool value) {
+    _isExisting = value;
+  }
+
+
+  String get sourceMemberName => _sourceMemberName;
+
+  set sourceMemberName(String value) {
+    _sourceMemberName = value;
+  }
+
+  String get destinationMemberName => _destinationMemberName;
+
+  set destinationMemberName(String value) {
+    _destinationMemberName = value;
+  }
+
   static VwUserActiveConversation fromJson (Map<String, dynamic> json) {
     VwUserActiveConversation data = new VwUserActiveConversation();
 
     data.id = json['id'];
     data.conversationId = json["conversation_id"];
     data.sourceMemberId = json["source_member_id"];
+    data.sourceMemberName = json["source_member_name"];
+    data.sourceMemberType = json["source_member_type"];
     data.destinationMemberId = json["destination_member_id"];
+    data.destinationMemberName = json["destination_member_name"];
+    data.destinationMemberType = json["destination_member_type"];
     data.name = json["name"];
     data.mediaId = json["media_id"];
     data.latestMessageSenderId = json["latest_message_sender_id"];

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:bloc/bloc.dart';
+import 'package:chat_service/core/models/bases/cud_response.dart';
 import 'package:chat_service/core/models/bases/paging.dart';
 import 'package:chat_service/core/models/dao/multilist_item.dart';
 import 'package:chat_service/core/models/views/vw_conversation_message.dart';
+import 'package:chat_service/core/models/views/vw_user_active_conversation.dart';
 import 'package:chat_service/core/repos/conversation_repo.dart';
 import 'package:chat_service/core/utils/util.dart';
 import './bloc.dart';
@@ -26,19 +28,57 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
       if (fetch) {
         try {
           if (state is InitialConversationState) {
-            final Paging<VwConversationMessage> items = await _fetch(event.conversation.sourceMemberId, event.conversation.conversationId,  page: 1, filter: event.query);
-            dispatch(MarkAsRead(event.conversation));
-            yield new ActivedState(items.currentPage, items.currentPage == items.lastPage, items.data, buildDatas(items.data, event.conversation.sourceMemberId), event.query, "FETCH");
+            if (event.conversation.conversationId != null) {
+              final Paging<VwConversationMessage> items = await _fetch(
+                  event.conversation.sourceMemberId,
+                  event.conversation.conversationId, page: 1,
+                  filter: event.query);
+              yield new ActivedState(
+                event.conversation,
+                items.currentPage, items.currentPage == items.lastPage,
+                items.data,
+                buildDatas(items.data, event.conversation.sourceMemberId),
+                event.query, "FETCH");
+            }
+            else {
+              ConversationRepo _conversationRepo = ConversationRepo.instance();
+              CUDResponse<VwUserActiveConversation> response = await _conversationRepo.saveConversation(event.conversation.sourceMemberId, event.conversation);
+              VwUserActiveConversation data = response.data;
+              if (data.isExisting) {
+                final Paging<VwConversationMessage> items = await _fetch(
+                    data.sourceMemberId,
+                    data.conversationId, page: 1,
+                    filter: event.query);
+                List<MultilistItem> datas = buildDatas(items.data, data.sourceMemberId);
+                yield new ActivedState(
+                  data,
+                  items.currentPage,
+                  items.currentPage == items.lastPage,
+                  items.data,
+                  datas,
+                  event.query, "FETCH");
+              }
+              else {
+                yield new ActivedState(
+                  data,
+                  1,
+                  true,
+                  [],
+                  buildDatas([], data.sourceMemberId),
+                  event.query, "FETCH");
+              }
+            }
           }
           else if (state is ActivedState) {
             final Paging<VwConversationMessage> items = await _fetch(event.conversation.sourceMemberId, event.conversation.conversationId,  page: state.page + 1, filter: event.query);
             yield new ActivedState(
-                items.currentPage,
-                items.currentPage == items.lastPage,
-                state.rawDatas + items.data,
-                buildDatas(state.rawDatas + items.data, event.conversation.sourceMemberId),
-                event.query,
-                "LOAD_MORE"
+              event.conversation,
+              items.currentPage,
+              items.currentPage == items.lastPage,
+              state.rawDatas + items.data,
+              buildDatas(state.rawDatas + items.data, event.conversation.sourceMemberId),
+              event.query,
+              "LOAD_MORE"
             );
           }
         }
@@ -52,7 +92,7 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
         if (event.type == "NEW") {
           List<VwConversationMessage> rawDatas = state.rawDatas;
           rawDatas.insert(0, event.message);
-          yield new ActivedState(state.page, state.hasReachedFinal, rawDatas, buildDatas(rawDatas, event.conversation.sourceMemberId), state.query, "RECEIVE");
+          yield new ActivedState(state.conversation, state.page, state.hasReachedFinal, rawDatas, buildDatas(rawDatas, event.conversation.sourceMemberId), state.query, "RECEIVE");
         }
         else {
           List<VwConversationMessage> rawDatas = state.rawDatas;
@@ -61,7 +101,7 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
               data.status = event.message.status;
             }
           }
-          yield new ActivedState(state.page, state.hasReachedFinal, rawDatas, buildDatas(rawDatas, event.conversation.sourceMemberId), state.query, "UPDATE_STATUS");
+          yield new ActivedState(state.conversation, state.page, state.hasReachedFinal, rawDatas, buildDatas(rawDatas, event.conversation.sourceMemberId), state.query, "UPDATE_STATUS");
         }
       }
     }
@@ -70,7 +110,7 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
         ConversationRepo.instance().pushMessage(event.message);
         List<VwConversationMessage> rawDatas = state.rawDatas;
         rawDatas.insert(0, event.message);
-        yield new ActivedState(state.page, state.hasReachedFinal, rawDatas,
+        yield new ActivedState(state.conversation, state.page, state.hasReachedFinal, rawDatas,
             buildDatas(rawDatas, event.conversation.sourceMemberId),
             state.query, "SEND");
       }
@@ -84,7 +124,7 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
             }
           }
         }
-        yield new ActivedState(state.page, state.hasReachedFinal, state.rawDatas, state.datas, state.query, "READ");
+        yield new ActivedState(state.conversation, state.page, state.hasReachedFinal, state.rawDatas, state.datas, state.query, "READ");
       }
     }
   }
@@ -180,8 +220,10 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
       datas.add(new MultilistItem("HEADER", date));
     }
 
-    if (datas[0].type == "ITEM")
-      datas[0].data.isFirst = true;
+    if (datas.length > 0) {
+      if (datas[0].type == "ITEM")
+        datas[0].data.isFirst = true;
+    }
 
     int lastIdex = -1;
     for (int i = 0; i < datas.length; i++) {

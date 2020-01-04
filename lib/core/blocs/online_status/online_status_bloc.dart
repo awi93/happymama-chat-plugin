@@ -1,14 +1,33 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:chat_service/core/repos/conversation_repo.dart';
 import 'package:chat_service/core/services/online_status/online_status.dart';
+import 'package:chat_service/core/utils/util.dart';
 import './bloc.dart';
 
 class OnlineStatusBloc extends Bloc<OnlineStatusEvent, OnlineStatusState> {
   Timer timer;
 
   @override
-  OnlineStatusState get initialState => InitialOnlineStatusState();
+  OnlineStatusState get initialState => _getInitialState();
+
+  OnlineStatusState _getInitialState() {
+    String onlineStatus = Util.prefs.getString("ONLINE_STATUS");
+
+    if (onlineStatus != null) {
+      Map<String, dynamic> json = jsonDecode(onlineStatus);
+
+      if (json["status"] == "ONLINE") {
+        return OnlineState(json);
+      }
+      else {
+        return OfflineState(json);
+      }
+    }
+
+    return InitialOnlineStatusState();
+  }
 
   @override
   Stream<OnlineStatusState> mapEventToState(
@@ -24,6 +43,7 @@ class OnlineStatusBloc extends Bloc<OnlineStatusEvent, OnlineStatusState> {
       });
       try {
         Map<String, dynamic> data = await OnlineStatus.getOnlineStatus(event.memberId);
+        Util.prefs.setString("ONLINE_STATUS", jsonEncode(data));
         if (data["status"] == "ONLINE") {
           yield new OnlineState(data);
         }
@@ -41,6 +61,7 @@ class OnlineStatusBloc extends Bloc<OnlineStatusEvent, OnlineStatusState> {
     else if (event is ChangeStatus) {
       try {
         Map<String, dynamic> data = await OnlineStatus.getOnlineStatus(event.memberId);
+        Util.prefs.setString("ONLINE_STATUS", jsonEncode(data));
         if (data["status"] == "ONLINE") {
           yield new OnlineState(data);
         }

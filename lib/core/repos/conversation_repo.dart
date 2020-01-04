@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:chat_service/core/errors/server_response_error_exception.dart';
 import 'package:chat_service/core/models/bases/cud_response.dart';
 import 'package:chat_service/core/models/bases/paging.dart';
+import 'package:chat_service/core/models/tables/conversation_member.dart';
 import 'package:chat_service/core/models/tables/member_exchange_route.dart';
 import 'package:chat_service/core/models/tables/member_online_status.dart';
 import 'package:chat_service/core/models/views/vw_conversation_message.dart';
@@ -251,6 +252,59 @@ class ConversationRepo extends BaseRepo {
 
     channel.close();
     client.close();
+  }
+
+  Future<CUDResponse<VwUserActiveConversation>> saveConversation (String memberId, VwUserActiveConversation data) async {
+    String _tokenString = await Util.secureStorage.read(key: "access_token");
+
+    String url = Util.remoteConfig.getString("api_url") + "/members/" + memberId + "/active-conversations";
+
+    Map<String, dynamic> body = new Map();
+    body["type"] = data.type;
+
+    if (data.type == "GROUP") {
+      body["name"] = data.name;
+      if (data.mediaId != null)
+        body["media_id"] = data.mediaId;
+    }
+
+    body["conversation_members"] = [];
+    for (ConversationMember member in data.conversationMembers) {
+      body["conversation_members"].add({
+        "member_id" : member.memberId,
+        "member_type" : member.memberType
+      });
+    }
+
+    final response = await Util.httpClient.post(url, headers: {
+      "authorization" : "Bearer " + _tokenString,
+      "Content-Type": "application/json"
+    }, body: jsonEncode(body)).timeout(Duration(seconds: 10));
+
+    if (response.statusCode == 201) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      VwUserActiveConversation data = VwUserActiveConversation.fromJson(json["data"]);
+      data.isExisting = false;
+
+      final CUDResponse<VwUserActiveConversation> create = new CUDResponse<VwUserActiveConversation>(json["id"].toString(), data);
+
+      return create;
+    }
+    else if (response.statusCode == 200) {
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      VwUserActiveConversation data = VwUserActiveConversation.fromJson(json["data"]);
+      data.isExisting = true;
+
+      final CUDResponse<VwUserActiveConversation> create = new CUDResponse<VwUserActiveConversation>(json["id"].toString(), data);
+
+      return create;
+    }
+    else {
+      final Map<String, dynamic> error = jsonDecode(response.body);
+      throw ServerResponseErrorException(response.statusCode, error["error"], (error.containsKey("errors"))?error["errors"]:null);
+    }
   }
 
 }

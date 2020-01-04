@@ -1,5 +1,6 @@
 import 'package:chat_service/core/models/dao/multilist_item.dart';
 import 'package:chat_service/core/models/views/vw_conversation_message.dart';
+import 'package:chat_service/core/models/views/vw_user_active_conversation.dart';
 import 'package:chat_service/ui/pages/conversation/bloc/bloc.dart';
 import 'package:meta/meta.dart';
 
@@ -10,6 +11,7 @@ class InitialConversationState extends ConversationState {}
 
 class ActivedState extends ConversationState {
 
+  VwUserActiveConversation conversation;
   int page = 0;
   bool hasReachedFinal = false;
   List<VwConversationMessage> rawDatas;
@@ -17,8 +19,9 @@ class ActivedState extends ConversationState {
   Map<String, String> query;
   String state;
 
-  ActivedState(this.page, this.hasReachedFinal, this.rawDatas, this.datas,
-      this.query, this.state);
+  ActivedState(this.conversation, this.page, this.hasReachedFinal,
+      this.rawDatas, this.datas, this.query, this.state);
+
 
 }
 

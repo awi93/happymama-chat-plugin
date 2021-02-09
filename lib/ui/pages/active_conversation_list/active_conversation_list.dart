@@ -7,7 +7,6 @@ import 'package:dart_amqp/dart_amqp.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:uuid/uuid.dart';
 
@@ -54,13 +53,13 @@ class _ActiveConversationList extends State<ActiveConversationList> {
 
     _scrollController.addListener(_onScroll);
     _bloc =  new ActiveConversationListBloc();
-    _bloc.state.listen((state) {
+    _bloc.listen((state) {
       if (state is ErrorState) {
         final snackBar = SnackBar(
           action: SnackBarAction(
             label: "Coba Lagi",
             onPressed: () {
-              _bloc.dispatch(state.prevEvent);
+              _bloc.add(state.prevEvent);
             },
           ),
           content: Text("Oops!! Sepertinya Anda bermasalah dengan jaringan. Silahkan coba kembali"),
@@ -81,15 +80,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
           "Chat"
         ),
         backgroundColor: Colors.white,
-        centerTitle: false,
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(
-              FontAwesomeIcons.filter,
-              color: Colors.grey[700],
-            ),
-          )
-        ],
+        centerTitle: false
       ),
       body: Builder(
         builder: (context) {
@@ -101,9 +92,9 @@ class _ActiveConversationList extends State<ActiveConversationList> {
             onRefresh: _onRefresh,
             controller: _refreshController,
             child: BlocProvider(
-              builder: (context) => _bloc,
+              create: (context) => _bloc,
               child: BlocBuilder(
-                bloc: _bloc..dispatch(Fetch(_memberId, queries)),
+                bloc: _bloc..add(Fetch(_memberId, queries)),
                 builder: (context, state) {
                   if (state is ErrorState) {
                     state = (state as ErrorState).prevState;
@@ -183,7 +174,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
 
 
   void _onRefresh() async {
-    _bloc.dispatch(Refresh(_memberId, queries));
+    _bloc.add(Refresh(_memberId, queries));
     _refreshController.refreshCompleted();
   }
 
@@ -199,7 +190,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     if (maxScroll - currentScroll <= _scrollThreshold) {
-      _bloc.dispatch(Fetch(_memberId, queries));
+      _bloc.add(Fetch(_memberId, queries));
     }
   }
 
@@ -222,7 +213,7 @@ class _ActiveConversationList extends State<ActiveConversationList> {
 
     Consumer consumer = await queue.consume();
     consumer.listen((AmqpMessage message) {
-      if (_bloc.currentState != null && _bloc.currentState is FetchedState) {
+      if (_bloc.state != null && _bloc.state is FetchedState) {
         Map<String, dynamic> load = message.payloadAsJson;
         if(load["type"] != null) {
           switch (load["type"]) {
@@ -232,12 +223,12 @@ class _ActiveConversationList extends State<ActiveConversationList> {
               if (message.conversationId != activeConversation) {
                 FlutterRingtonePlayer.playNotification();
               }
-              _bloc.dispatch(UpdateLatestMessage(message));
+              _bloc.add(UpdateLatestMessage(message));
               break;
             case "MSG_STATUS_UPDATE":
               VwConversationMessage message = VwConversationMessage.fromJson(load["data"]);
               String activeConversation = Util.prefs.getString("ACTIVE_CONVERSATION");
-              _bloc.dispatch(UpdateLatestMessage(message));
+              _bloc.add(UpdateLatestMessage(message));
               break;
           }
         }

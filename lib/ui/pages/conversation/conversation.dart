@@ -1,4 +1,5 @@
 import 'dart:core';
+
 import 'package:audiofileplayer/audiofileplayer.dart';
 import 'package:chat_service/core/models/views/vw_conversation_message.dart';
 import 'package:chat_service/core/models/views/vw_user_active_conversation.dart';
@@ -8,7 +9,6 @@ import 'package:chat_service/ui/pages/conversation/widgets/conversation_appbar.d
 import 'package:chat_service/ui/pages/conversation/widgets/conversation_list.dart';
 import 'package:chat_service/ui/pages/conversation/widgets/embedded_message.dart';
 import 'package:chat_service/ui/widgets/embedded_message_item/factory.dart';
-import 'package:chat_service/ui/widgets/embedded_message_picker/embedded_message_picker.dart';
 import 'package:dart_amqp/dart_amqp.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -69,7 +69,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
 
     Util.prefs.setString("ACTIVE_CONVERSATION", conversation.conversationId);
 
-    _bloc.state.listen((state) {
+    _bloc.listen((state) {
       if (state is ActivedState) {
         int newIndex = state.datas.indexWhere((data) => data.type == "NEW_MESSAGE_SEPARATOR");
 
@@ -82,7 +82,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
             }
             else {
               if (this.displayState == "FOREGROUND") {
-                _bloc.dispatch(MarkAsRead(conversation));
+                _bloc.add(MarkAsRead(conversation));
               }
             }
           }
@@ -95,7 +95,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
         }
 
         if (state.state == "FETCH") {
-          _bloc.dispatch(MarkAsRead(state.conversation));
+          _bloc.add(MarkAsRead(state.conversation));
         }
 
       }
@@ -110,7 +110,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
           backgroundColor: Colors.white,
         ),
         body: BlocProvider(
-          builder: (context) => _bloc,
+          create: (context) => _bloc,
           child: SafeArea(
             child: Container(
               child: Column(
@@ -120,7 +120,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
                     child: Stack(
                       children: <Widget>[
                         BlocBuilder(
-                          bloc: _bloc..dispatch(Fetch(conversation, query)),
+                          bloc: _bloc..add(Fetch(conversation, query)),
                           builder: (context, state) {
                             if (state is ErrorState) {
                               state = (state as ErrorState).prevState;
@@ -266,7 +266,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
                                             conversation.sourceMemberId;
                                         data.createdAt = DateTime.now();
                                         data.status = "ON_PROGRESS";
-                                        _bloc.dispatch(Send(conversation, data));
+                                        _bloc.add(Send(conversation, data));
                                       }
                                       else {
                                         setState(() {
@@ -395,13 +395,13 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
           else {
             Audio.load("packages/chat_service/assets/notif.mp3")..play()..dispose();
           }
-          _bloc.dispatch(Receive(conversation, message, "NEW"));
+          _bloc.add(Receive(conversation, message, "NEW"));
           break;
         case "MSG_STATUS_UPDATE" :
           VwConversationMessage  message = VwConversationMessage.fromJson(data["data"]);
           if (message.status == "DELIVERED" && message.senderId == conversation.sourceMemberId)
             Audio.load("packages/chat_service/assets/tick.mp3")..play()..dispose();
-          _bloc.dispatch(Receive(conversation, message, "UPDATE_STATUS"));
+          _bloc.add(Receive(conversation, message, "UPDATE_STATUS"));
           break;
       }
     });
@@ -409,7 +409,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
   }
 
   Future<void> sendMessage() async {
-    if (_bloc.currentState is ActivedState) {
+    if (_bloc.state is ActivedState) {
       SystemChannels.textInput.invokeMethod(
           'TextInput.hide');
       if (textController.text != null &&
@@ -425,7 +425,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
           DateTime.now()..subtract(Duration(microseconds: 10));
           embeddedMessage.status =
           "ON_PROGRESS";
-          _bloc.dispatch(Send(
+          _bloc.add(Send(
               conversation, embeddedMessage));
           setState(() {
             embeddedMessage = null;
@@ -444,7 +444,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
         message.createdAt = DateTime.now();
         textController.clear();
         await Future.delayed(Duration(milliseconds: 300),() {});
-        _bloc.dispatch(
+        _bloc.add(
             Send(conversation, message));
       }
     }
@@ -459,7 +459,7 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
     else if (state == AppLifecycleState.resumed) {
       this.displayState = "FOREGROUND";
       if (controller.offset < 100) {
-        _bloc.dispatch(MarkAsRead(conversation));
+        _bloc.add(MarkAsRead(conversation));
       }
     }
     print(this.displayState);
@@ -469,14 +469,14 @@ class _Conversation extends State<Conversation> with WidgetsBindingObserver {
     final maxScroll = controller.position.maxScrollExtent;
     final currentScroll = controller.position.pixels;
     if (maxScroll - currentScroll <= _scrollThreshold) {
-      _bloc.dispatch(Fetch(conversation, query));
+      _bloc.add(Fetch(conversation, query));
     }
     if (controller.offset < 100) {
       setState(() {
         showGotoBottom = false;
       });
       if (this.displayState == "FOREGROUND") {
-        _bloc.dispatch(MarkAsRead(conversation));
+        _bloc.add(MarkAsRead(conversation));
       }
     }
   }

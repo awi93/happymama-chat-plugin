@@ -13,14 +13,14 @@ class ActiveConversationListBloc extends Bloc<ActiveConversationListEvent, Activ
   Stream<ActiveConversationListState> mapEventToState(
     ActiveConversationListEvent event,
   ) async* {
-    ActiveConversationListState state = currentState;
+    ActiveConversationListState state = this.state;
     if (state is ErrorState) {
       state = (state as ErrorState).prevState;
     }
 
     if (event is Refresh) {
       yield new InitialActiveConversationListState();
-      dispatch(Fetch(event.memberId, event.query));
+      add(Fetch(event.memberId, event.query));
     }
     else if (event is Fetch) {
       bool fetch = (!_hasReachedMax(state));

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:bloc/bloc.dart';
-import 'package:chat_service/core/repos/conversation_repo.dart';
 import 'package:chat_service/core/services/online_status/online_status.dart';
 import 'package:chat_service/core/utils/util.dart';
 import './bloc.dart';
@@ -39,7 +38,7 @@ class OnlineStatusBloc extends Bloc<OnlineStatusEvent, OnlineStatusState> {
         timer = null;
       }
       timer = Timer.periodic(Duration(minutes: 1), (Timer t) {
-        dispatch(ChangeStatus(event.memberId));
+        add(ChangeStatus(event.memberId));
       });
       try {
         Map<String, dynamic> data = await OnlineStatus.getOnlineStatus(event.memberId);
@@ -80,9 +79,6 @@ class OnlineStatusBloc extends Bloc<OnlineStatusEvent, OnlineStatusState> {
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    super.dispose();
-
     timer?.cancel();
   }
 }

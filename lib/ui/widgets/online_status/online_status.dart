@@ -14,7 +14,7 @@ class OnlineStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder(
-      bloc: _bloc..dispatch(Init(_memberId)),
+      bloc: _bloc..add(Init(_memberId)),
       builder: (context, state) {
         String text = "";
         if (state is OnlineState) {

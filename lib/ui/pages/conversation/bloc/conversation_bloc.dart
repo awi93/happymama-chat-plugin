@@ -18,7 +18,7 @@ class ConversationBloc extends Bloc<ConversationEvent, ConversationState> {
   Stream<ConversationState> mapEventToState(
     ConversationEvent event,
   ) async* {
-    ConversationState state = currentState;
+    ConversationState state = this.state;
     if (state is ErrorState) {
       state = (state as ErrorState).prevState;
     }

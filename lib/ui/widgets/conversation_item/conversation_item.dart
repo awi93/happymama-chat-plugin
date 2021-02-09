@@ -80,7 +80,7 @@ class _ConversationItem extends State<ConversationItem> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        _bloc.dispatch(Delete(data, index));
+                        _bloc.add(Delete(data, index));
                         Navigator.of(context).pop();
                       },
                       behavior: HitTestBehavior.opaque,
